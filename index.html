@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+  <title>NEmarket — смотреть можно, заказать нельзя</title>
+  <style>
+    /* Общие стили — компактный современный дизайн, аналогичный Ozon/WB */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f5f7; color: #1a1a1a; }
+    :root {
+      --accent: #6c3ed9; --accent-light: #ede4ff; --accent-glow: #8b5cf6;
+      --success: #10b981; --danger: #e74c4c; --warning: #f59e0b;
+      --border: #e8e8ee; --shadow: 0 2px 8px rgba(0,0,0,0.06);
+      --radius: 14px; --header-height: 60px; --nav-height: 48px;
+    }
+    .header {
+      position: sticky; top: 0; z-index: 100; background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(12px); border-bottom: 1px solid var(--border);
+      height: var(--header-height); display: flex; align-items: center; padding: 0 16px; gap: 12px;
+    }
+    .logo { font-weight: 900; font-size: 24px; cursor: pointer; color: var(--accent); user-select: none; display: flex; align-items: center; gap: 4px; }
+    .logo span { color: #1a1a1a; }
+    .search { flex: 1; max-width: 500px; position: relative; }
+    .search input { width: 100%; padding: 10px 40px 10px 16px; border: 2px solid var(--border); border-radius: 24px; font-size: 15px; outline: none; background: #fff; }
+    .search button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); background: var(--accent); border: none; color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+    .header-actions { display: flex; gap: 8px; align-items: center; }
+    .icon-btn { background: none; border: 2px solid var(--border); border-radius: 24px; padding: 8px 16px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; background: #fff; }
+    .icon-btn.fav { border-color: #ff4081; color: #ff4081; }
+    .icon-btn.cart { border-color: var(--accent); color: var(--accent); }
+    .badge { background: var(--accent); color: #fff; border-radius: 50%; min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; }
+    .nav-categories {
+      position: sticky; top: var(--header-height); z-index: 99; background: #fff; border-bottom: 1px solid var(--border);
+      height: var(--nav-height); display: flex; overflow-x: auto; gap: 4px; padding: 0 8px;
+      scrollbar-width: none; -ms-overflow-style: none;
+    }
+    .nav-cat {
+      padding: 8px 14px; border-radius: 20px; cursor: pointer; white-space: nowrap; font-size: 13px; font-weight: 500;
+      border: 1.5px solid transparent; background: transparent; color: #666; transition: all 0.2s; user-select: none;
+    }
+    .nav-cat.active { background: var(--accent); color: #fff; font-weight: 600; border-color: var(--accent); }
+    .products-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr)); gap: 12px; padding: 16px;
+    }
+    .product-card {
+      background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+      transition: transform 0.2s, box-shadow 0.2s; position: relative; cursor: pointer;
+      border: 2px solid transparent;
+    }
+    .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .product-card.popular { border-color: var(--warning); }
+    .popular-badge { position: absolute; top: 8px; left: 8px; background: var(--warning); color: #fff; border-radius: 12px; padding: 3px 8px; font-size: 11px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
+    .img-wrap { position: relative; aspect-ratio: 1/1; background: #f0f0f0; display: flex; align-items: center; justify-content: center; }
+    .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
+    .img-wrap .img-fallback { background: #ccc; color: #888; font-size: 12px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; }
+    .card-body { padding: 10px; }
+    .card-body .company { font-size: 11px; color: #999; text-transform: uppercase; }
+    .card-body .name { font-weight: 600; font-size: 14px; line-height: 1.3; }
+    .card-body .price { font-weight: 800; font-size: 18px; margin-top: 6px; }
+    .old-price { font-size: 13px; color: #aaa; text-decoration: line-through; margin-left: 6px; }
+    .installment { font-size: 11px; color: var(--success); margin-top: 2px; }
+    .bonus { font-size: 11px; color: var(--accent); }
+    .rating-stars { color: var(--warning); font-size: 13px; }
+    .heart-btn {
+      position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.8); border: none; border-radius: 50%;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 2;
+      font-size: 16px; color: #ccc; backdrop-filter: blur(4px);
+    }
+    .heart-btn.active { color: #ff4081; }
+    /* Модальное окно товара */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal {
+      background: #fff; border-radius: 20px; width: 90%; max-width: 500px; max-height: 85vh; overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2); position: relative; padding: 16px;
+    }
+    .modal .close { float: right; background: none; border: none; font-size: 24px; cursor: pointer; }
+    .modal-gallery { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; }
+    .modal-gallery img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; }
+    .ai-notice { font-size: 9px; color: #ccc; text-align: right; margin-top: 8px; }
+    /* Лента */
+    .feed-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 200px); }
+    .feed-card { background: #fff; border-radius: 20px; box-shadow: var(--shadow); width: 300px; padding: 20px; text-align: center; }
+    .feed-actions { display: flex; justify-content: space-around; margin-top: 20px; }
+    .feed-btn { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; }
+    .feed-btn.green { background: #d1fae5; color: var(--success); }
+    .feed-btn.red { background: #fde8e8; color: var(--danger); }
+    /* Нижние вкладки */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around; padding: 6px 0; z-index: 150; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    .bottom-nav button { background: none; border: none; font-size: 12px; color: #666; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .bottom-nav button.active { color: var(--accent); font-weight: bold; }
+    .toast { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 10px 24px; border-radius: 24px; font-weight: 600; z-index: 300; transition: opacity 0.3s; opacity: 0; }
+    .toast.show { opacity: 1; }
+    @media (max-width: 600px) {
+      .products-grid { grid-template-columns: repeat(2, 1fr); }
+      .header { padding: 0 8px; }
+      .logo { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo" onclick="goHome()"><span style="color:#6c3ed9;">NE</span><span>market</span></div>
+    <div class="search">
+      <input type="text" id="searchInput" placeholder="Поиск по товарам" oninput="handleSearch()">
+      <button onclick="handleSearch()">🔍</button>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn fav" onclick="openFavorites()"><span id="favCount">0</span> ❤️</button>
+      <button class="icon-btn cart" onclick="openCart()"><span id="cartCount">0</span> Корзина</button>
+    </div>
+  </header>
+
+  <nav class="nav-categories" id="navCategories"></nav>
+
+  <main id="mainContent" style="padding-bottom: 70px;"></main>
+
+  <!-- Модалка товара -->
+  <div class="modal-overlay" id="productModalOverlay"><div class="modal" id="productModal"></div></div>
+
+  <!-- Нижние вкладки -->
+  <div class="bottom-nav">
+    <button class="active" onclick="switchTab('home')">🏠 Главная</button>
+    <button onclick="switchTab('feed')">⚡ Лента</button>
+    <button onclick="switchTab('favorites')">❤️ Избранное</button>
+    <button onclick="switchTab('cart')">🛒 Корзина</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    (() => {
+      // --- Глобальные переменные ---
+      let products = [];
+      let reviewsData = {};
+      let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]');
+      let favorites = JSON.parse(localStorage.getItem('nemarket_fav') || '[]');
+      let currentCategory = 'all';
+      let currentSearch = '';
+      let currentTab = 'home';
+      let popularIds = new Set(); // 8 популярных товаров
+
+      const GITHUB_IMAGE_BASE = 'https://raw.githubusercontent.com/USERNAME/REPO/main/image/';
+
+      function getImageUrl(productId, imageNum) {
+        return `${GITHUB_IMAGE_BASE}${productId}-${imageNum}.jpg`;
+      }
+
+      // --- Загрузка данных ---
+      async function loadProducts() {
+        try {
+          const resp = await fetch('products.json');
+          if (!resp.ok) throw new Error('products.json not found');
+          products = await resp.json();
+          if (!Array.isArray(products) || products.length === 0) throw new Error('Empty');
+          // Выделяем 8 популярных (самый высокий рейтинг и много отзывов после загрузки отзывов)
+        } catch (e) {
+          console.warn('Загрузка products.json не удалась, используются заглушки', e);
+          products = [{ id:1, name:'Тестовый товар', company:'NEmarket', category:'other', price:1000, oldPrice:null, rating:4.0, imageCount:1, badge:'new', desc:'Описание товара.' }];
+        }
+      }
+
+      async function loadReviews() {
+        try {
+          const resp = await fetch('reviews.json');
+          if (!resp.ok) throw new Error('reviews.json not found');
+          reviewsData = await resp.json();
+        } catch (e) {
+          console.warn('Отзывы не загружены', e);
+          reviewsData = {};
+        }
+        // После загрузки отзывов выберем популярные товары
+        selectPopularProducts();
+      }
+
+      function selectPopularProducts() {
+        // Берём товары с максимальным количеством отзывов и рейтингом > 4.5
+        const candidates = products.filter(p => {
+          const revs = getProductReviews(p.id);
+          return revs.totalCount > 1000 && p.rating >= 4.5;
+        }).sort((a,b) => {
+          const aR = getProductReviews(a.id).totalCount;
+          const bR = getProductReviews(b.id).totalCount;
+          return (b.rating * 10000 + bR) - (a.rating * 10000 + aR);
+        });
+        popularIds = new Set(candidates.slice(0, 8).map(p => p.id));
+      }
+
+      function getProductReviews(productId) {
+        const productReviews = reviewsData[productId.toString()] || [];
+        // Вариативность: 0-10 видимых, 0-30000 общих
+        const visibleCount = Math.min(productReviews.length, Math.floor(Math.random() * 11)); // 0-10
+        const totalCount = productReviews.length > 0 ? Math.floor(Math.random() * 30001) : 0;
+        const selected = [...productReviews].sort((a,b) => b.likes - a.likes).slice(0, visibleCount);
+        return { reviews: selected, totalCount };
+      }
+
+      // --- Избранное и корзина ---
+      function toggleFavorite(productId) {
+        if (favorites.includes(productId)) {
+          favorites = favorites.filter(id => id !== productId);
+        } else {
+          favorites.push(productId);
+        }
+        localStorage.setItem('nemarket_fav', JSON.stringify(favorites));
+        updateFavCount();
+        renderCurrentView();
+      }
+
+      function isFavorite(productId) { return favorites.includes(productId); }
+
+      function addToCart(productId) {
+        if (!cart.includes(productId)) {
+          cart.push(productId);
+          localStorage.setItem('nemarket_cart', JSON.stringify(cart));
+        }
+        updateCartCount();
+        showToast('Добавлено в корзину');
+      }
+
+      function removeFromCart(productId) {
+        cart = cart.filter(id => id !== productId);
+        localStorage.setItem('nemarket_cart', JSON.stringify(cart));
+        updateCartCount();
+        showToast('Удалено из корзины');
+      }
+
+      function updateCartCount() {
+        document.getElementById('cartCount').textContent = cart.length;
+      }
+      function updateFavCount() {
+        document.getElementById('favCount').textContent = favorites.length;
+      }
+
+      // --- Поиск по триграммам ---
+      function trigramSimilarity(query, text) {
+        if (!query || !text) return 0;
+        const trigrams = s => {
+          const t = s.toLowerCase();
+          const res = new Set();
+          for (let i = 0; i <= t.length - 3; i++) res.add(t.substring(i, i+3));
+          return res;
+        };
+        const qTrigrams = trigrams(query);
+        if (qTrigrams.size === 0) return 0;
+        const tTrigrams = trigrams(text);
+        let intersect = 0;
+        for (let t of qTrigrams) if (tTrigrams.has(t)) intersect++;
+        return intersect / qTrigrams.size;
+      }
+
+      function filterProducts() {
+        let filtered = products;
+        if (currentCategory !== 'all') {
+          filtered = filtered.filter(p => p.category === currentCategory);
+        }
+        if (currentSearch.trim()) {
+          const q = currentSearch.trim().toLowerCase();
+          filtered = filtered.filter(p => {
+            const nameSim = trigramSimilarity(q, p.name);
+            const descSim = trigramSimilarity(q, p.desc || '');
+            const companySim = trigramSimilarity(q, p.company);
+            return nameSim > 0.3 || descSim > 0.2 || companySim > 0.3 || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
+          });
+        }
+        // Перемешиваем случайно
+        return filtered.sort(() => Math.random() - 0.5);
+      }
+
+      // --- Рендер ---
+      function renderProducts(containerId, productList) {
+        const grid = document.getElementById(containerId);
+        if (!grid) return;
+        grid.innerHTML = productList.map(p => {
+          const inFav = isFavorite(p.id);
+          const popularClass = popularIds.has(p.id) ? 'popular' : '';
+          const popularBadge = popularIds.has(p.id) ? `<div class="popular-badge">🔥 Хит</div>` : '';
+          const imgUrl = getImageUrl(p.id, 1);
+          return `
+            <div class="product-card ${popularClass}" onclick="openProduct(${p.id})">
+              ${popularBadge}
+              <div class="img-wrap">
+                <img src="${imgUrl}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="${p.name}">
+                <div class="img-fallback" style="display:none;">📷 Нет фото</div>
+              </div>
+              <button class="heart-btn ${inFav?'active':''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})">❤️</button>
+              <div class="card-body">
+                <div class="company">${p.company}</div>
+                <div class="name">${p.name}</div>
+                <div class="price">${p.price.toLocaleString()} ₽ ${p.oldPrice ? `<span class="old-price">${p.oldPrice.toLocaleString()} ₽</span>` : ''}</div>
+                <div class="installment">от ${Math.round(p.price/3).toLocaleString()} ₽ × 3 мес.</div>
+                <div class="bonus">+${Math.round(p.price*0.01)} бонусов</div>
+                <div class="rating-stars">${'★'.repeat(Math.floor(p.rating))} ${p.rating}</div>
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      function renderFeed() {
+        const main = document.getElementById('mainContent');
+        if (products.length === 0) return;
+        const randomProduct = products[Math.floor(Math.random() * products.length)];
+        main.innerHTML = `
+          <div class="feed-container">
+            <div class="feed-card">
+              <div class="img-wrap" style="height:200px;">
+                <img src="${getImageUrl(randomProduct.id,1)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="">
+                <div class="img-fallback" style="display:none;">📷</div>
+              </div>
+              <h3>${randomProduct.name}</h3>
+              <p>${randomProduct.price.toLocaleString()} ₽</p>
+            </div>
+            <div class="feed-actions">
+              <button class="feed-btn red" onclick="nextFeed()">👎</button>
+              <button class="feed-btn green" onclick="addToFavoritesFromFeed(${randomProduct.id}); nextFeed();">👍</button>
+            </div>
+          </div>`;
+      }
+
+      function addToFavoritesFromFeed(productId) {
+        if (!favorites.includes(productId)) {
+          favorites.push(productId);
+          localStorage.setItem('nemarket_fav', JSON.stringify(favorites));
+          updateFavCount();
+          showToast('Добавлено в избранное');
+        }
+      }
+
+      function nextFeed() {
+        renderFeed();
+      }
+
+      function renderFavorites() {
+        const main = document.getElementById('mainContent');
+        const favProducts = products.filter(p => favorites.includes(p.id));
+        if (favProducts.length === 0) {
+          main.innerHTML = '<div style="text-align:center; padding:40px;">В избранном пусто</div>';
+          return;
+        }
+        main.innerHTML = '<div class="products-grid" id="favGrid"></div>';
+        renderProducts('favGrid', favProducts);
+      }
+
+      function renderCart() {
+        const main = document.getElementById('mainContent');
+        const cartProducts = products.filter(p => cart.includes(p.id));
+        if (cartProducts.length === 0) {
+          main.innerHTML = '<div style="text-align:center; padding:40px;">Корзина пуста</div>';
+          return;
+        }
+        let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
+        let bonus = Math.round(total * 0.01);
+        main.innerHTML = `
+          <div style="padding:16px;">
+            <h2>Корзина</h2>
+            ${cartProducts.map(p => `
+              <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+                <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+                <div style="flex:1">${p.name} <br> ${p.price.toLocaleString()} ₽</div>
+                <button onclick="removeFromCart(${p.id})" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
+              </div>`).join('')}
+            <p><strong>Итого: ${total.toLocaleString()} ₽</strong></p>
+            <p style="color:var(--accent)">Будет начислено бонусов: ${bonus}</p>
+            <div>
+              <label><input type="radio" name="delivery" checked> Самовывоз (ПВЗ)</label><br>
+              <label><input type="radio" name="delivery" onchange="document.getElementById('addressField').style.display=this.checked?'block':'none'"> Курьером</label>
+              <div id="addressField" style="display:none; margin-top:8px;">
+                <input type="text" placeholder="Адрес доставки" style="width:100%;padding:8px;">
+                <small>Укажите любой адрес, информация никуда не собирается и не распространяется</small>
+              </div>
+            </div>
+            <select id="installmentSelect" onchange="updateTotal()">
+              <option value="0">Без рассрочки</option>
+              <option value="3">3 мес. (0%)</option>
+              <option value="6">6 мес. (2%)</option>
+              <option value="12">12 мес. (5%)</option>
+              <option value="24">24 мес. (7%)</option>
+            </select>
+            <p id="installmentInfo"></p>
+            <button onclick="checkout()" style="background:var(--accent);color:#fff;border:none;padding:12px;border-radius:24px;width:100%;font-weight:bold;margin-top:12px;">Оформить заказ</button>
+          </div>`;
+        updateTotal();
+      }
+
+      function updateTotal() {
+        const select = document.getElementById('installmentSelect');
+        if (!select) return;
+        const months = parseInt(select.value);
+        const cartProducts = products.filter(p => cart.includes(p.id));
+        let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
+        let commission = 0;
+        if (months === 6) commission = 0.02;
+        else if (months === 12) commission = 0.05;
+        else if (months === 24) commission = 0.07;
+        const final = Math.round(total * (1 + commission));
+        document.getElementById('installmentInfo').innerText = months > 0 ? `Сумма с комиссией: ${final.toLocaleString()} ₽, платёж ~${Math.round(final/months).toLocaleString()} ₽/мес.` : '';
+      }
+
+      function checkout() {
+        alert('🎉 Заказ оформлен! Но помните: на NEmarket ничего нельзя заказать. Бонусы начислены (в воображении).');
+        cart = [];
+        localStorage.setItem('nemarket_cart', JSON.stringify(cart));
+        updateCartCount();
+        switchTab('home');
+      }
+
+      // --- Модальное окно товара ---
+      function openProduct(productId) {
+        const p = products.find(pr => pr.id === productId);
+        if (!p) return;
+        const { reviews, totalCount } = getProductReviews(p.id);
+        const gallery = Array.from({length: p.imageCount}, (_, i) => `<img src="${getImageUrl(p.id, i+1)}" onerror="this.style.display='none'">`).join('');
+        document.getElementById('productModal').innerHTML = `
+          <button class="close" onclick="closeModal()">✕</button>
+          <div class="modal-gallery">${gallery}</div>
+          <h3>${p.name}</h3>
+          <p style="color:#666">${p.company}</p>
+          <p style="font-size:24px;font-weight:800">${p.price.toLocaleString()} ₽ ${p.oldPrice?`<span style="font-size:16px;color:#999;text-decoration:line-through">${p.oldPrice.toLocaleString()} ₽</span>`:''}</p>
+          <div class="installment">Рассрочка: от ${Math.round(p.price/3).toLocaleString()} ₽ × 3 мес.</div>
+          <div class="bonus">+${Math.round(p.price*0.01)} бонусов</div>
+          <div style="margin:12px 0; line-height:1.5;">${p.desc}</div>
+          <div style="margin-top:12px;"><strong>Отзывы (показано ${reviews.length} из ${totalCount.toLocaleString()}):</strong></div>
+          ${reviews.map(r => `<div style="background:#f9f9f9;border-radius:8px;padding:8px;margin:6px 0;"><strong>${r.user}</strong> ${'★'.repeat(r.rating)}<br>${r.text}<br><small>👍 ${r.likes}</small></div>`).join('')}
+          <div class="ai-notice">Картинки сгенерированы Алиса AI</div>
+        `;
+        document.getElementById('productModalOverlay').classList.add('open');
+      }
+
+      function closeModal() {
+        document.getElementById('productModalOverlay').classList.remove('open');
+      }
+
+      // --- Табы ---
+      function switchTab(tab) {
+        currentTab = tab;
+        document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
+        if (tab === 'home') document.querySelector('.bottom-nav button:nth-child(1)').classList.add('active');
+        else if (tab === 'feed') document.querySelector('.bottom-nav button:nth-child(2)').classList.add('active');
+        else if (tab === 'favorites') document.querySelector('.bottom-nav button:nth-child(3)').classList.add('active');
+        else if (tab === 'cart') document.querySelector('.bottom-nav button:nth-child(4)').classList.add('active');
+        renderCurrentView();
+      }
+
+      function renderCurrentView() {
+        const main = document.getElementById('mainContent');
+        if (currentTab === 'home') {
+          renderHome();
+        } else if (currentTab === 'feed') {
+          renderFeed();
+        } else if (currentTab === 'favorites') {
+          renderFavorites();
+        } else if (currentTab === 'cart') {
+          renderCart();
+        }
+      }
+
+      function renderHome() {
+        const main = document.getElementById('mainContent');
+        const filtered = filterProducts();
+        main.innerHTML = `<div class="products-grid" id="homeGrid"></div>`;
+        renderProducts('homeGrid', filtered);
+      }
+
+      function goHome() {
+        currentCategory = 'all';
+        currentSearch = '';
+        document.getElementById('searchInput').value = '';
+        document.querySelectorAll('.nav-cat').forEach(b => b.classList.remove('active'));
+        switchTab('home');
+      }
+
+      function handleSearch() {
+        currentSearch = document.getElementById('searchInput').value;
+        renderHome();
+      }
+
+      // --- Инициализация ---
+      async function init() {
+        await loadProducts();
+        await loadReviews();
+        // Категории
+        const categories = ['all', 'electronics', 'clothing', 'home', 'sports', 'beauty', 'food', 'books', 'toys', 'pets', 'auto', 'office'];
+        const catNames = { all:'Все', electronics:'Электроника', clothing:'Одежда', home:'Дом', sports:'Спорт', beauty:'Красота', food:'Продукты', books:'Книги', toys:'Игрушки', pets:'Зоотовары', auto:'Авто', office:'Офис' };
+        const nav = document.getElementById('navCategories');
+        nav.innerHTML = categories.map(c => `<button class="nav-cat" data-cat="${c}">${catNames[c]}</button>`).join('');
+        nav.addEventListener('click', (e) => {
+          if (e.target.classList.contains('nav-cat')) {
+            document.querySelectorAll('.nav-cat').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            currentCategory = e.target.dataset.cat;
+            currentSearch = '';
+            document.getElementById('searchInput').value = '';
+            switchTab('home');
+          }
+        });
+        // Активируем "Все"
+        nav.querySelector('[data-cat="all"]').classList.add('active');
+        updateCartCount();
+        updateFavCount();
+        switchTab('home');
+      }
+
+      window.toggleFavorite = toggleFavorite;
+      window.openProduct = openProduct;
+      window.closeModal = closeModal;
+      window.addToCart = addToCart;
+      window.removeFromCart = removeFromCart;
+      window.nextFeed = nextFeed;
+      window.addToFavoritesFromFeed = addToFavoritesFromFeed;
+      window.switchTab = switchTab;
+      window.goHome = goHome;
+      window.handleSearch = handleSearch;
+      window.openFavorites = () => switchTab('favorites');
+      window.openCart = () => switchTab('cart');
+      window.checkout = checkout;
+      window.updateTotal = updateTotal;
+
+      function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2000);
+      }
+
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
