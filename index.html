@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
   <title>NEmarket — смотреть можно, заказать нельзя</title>
   <style>
-    /* Общие стили — компактный современный дизайн, аналогичный Ozon/WB */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #f5f5f7; color: #1a1a1a; }
     :root {
@@ -67,7 +66,6 @@
       font-size: 16px; color: #ccc; backdrop-filter: blur(4px);
     }
     .heart-btn.active { color: #ff4081; }
-    /* Модальное окно товара */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
       opacity: 0; pointer-events: none; transition: opacity 0.25s;
@@ -81,14 +79,12 @@
     .modal-gallery { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 12px; }
     .modal-gallery img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; }
     .ai-notice { font-size: 9px; color: #ccc; text-align: right; margin-top: 8px; }
-    /* Лента */
     .feed-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 200px); }
     .feed-card { background: #fff; border-radius: 20px; box-shadow: var(--shadow); width: 300px; padding: 20px; text-align: center; }
     .feed-actions { display: flex; justify-content: space-around; margin-top: 20px; }
     .feed-btn { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; }
     .feed-btn.green { background: #d1fae5; color: var(--success); }
     .feed-btn.red { background: #fde8e8; color: var(--danger); }
-    /* Нижние вкладки */
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border);
       display: flex; justify-content: space-around; padding: 6px 0; z-index: 150; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
@@ -121,10 +117,8 @@
 
   <main id="mainContent" style="padding-bottom: 70px;"></main>
 
-  <!-- Модалка товара -->
   <div class="modal-overlay" id="productModalOverlay"><div class="modal" id="productModal"></div></div>
 
-  <!-- Нижние вкладки -->
   <div class="bottom-nav">
     <button class="active" onclick="switchTab('home')">🏠 Главная</button>
     <button onclick="switchTab('feed')">⚡ Лента</button>
@@ -136,33 +130,30 @@
 
   <script>
     (() => {
-      // --- Глобальные переменные ---
+      // Конфигурация
+      const GITHUB_IMAGE_BASE = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/image/';
+      function getImageUrl(productId, imageNum) {
+        return `${GITHUB_IMAGE_BASE}${productId}-${imageNum}.jpeg`;
+      }
+
       let products = [];
       let reviewsData = {};
       let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]');
       let favorites = JSON.parse(localStorage.getItem('nemarket_fav') || '[]');
+      let bonusBalance = parseInt(localStorage.getItem('nemarket_bonus') || '0');
       let currentCategory = 'all';
       let currentSearch = '';
-      let currentTab = 'home';
-      let popularIds = new Set(); // 8 популярных товаров
+      let popularIds = new Set();
 
-      const GITHUB_IMAGE_BASE = 'https://raw.githubusercontent.com/USERNAME/REPO/main/image/';
-
-      function getImageUrl(productId, imageNum) {
-        return `${GITHUB_IMAGE_BASE}${productId}-${imageNum}.jpg`;
-      }
-
-      // --- Загрузка данных ---
+      // Загрузка данных
       async function loadProducts() {
         try {
           const resp = await fetch('products.json');
           if (!resp.ok) throw new Error('products.json not found');
           products = await resp.json();
-          if (!Array.isArray(products) || products.length === 0) throw new Error('Empty');
-          // Выделяем 8 популярных (самый высокий рейтинг и много отзывов после загрузки отзывов)
         } catch (e) {
-          console.warn('Загрузка products.json не удалась, используются заглушки', e);
-          products = [{ id:1, name:'Тестовый товар', company:'NEmarket', category:'other', price:1000, oldPrice:null, rating:4.0, imageCount:1, badge:'new', desc:'Описание товара.' }];
+          console.warn('products.json не найден, заглушка', e);
+          products = [{ id:1, name:'Тестовый товар', company:'NEmarket', category:'other', price:1000, oldPrice:null, rating:4.0, imageCount:1, badge:'new', desc:'Заглушка' }];
         }
       }
 
@@ -172,15 +163,13 @@
           if (!resp.ok) throw new Error('reviews.json not found');
           reviewsData = await resp.json();
         } catch (e) {
-          console.warn('Отзывы не загружены', e);
+          console.warn('reviews.json не загружен', e);
           reviewsData = {};
         }
-        // После загрузки отзывов выберем популярные товары
         selectPopularProducts();
       }
 
       function selectPopularProducts() {
-        // Берём товары с максимальным количеством отзывов и рейтингом > 4.5
         const candidates = products.filter(p => {
           const revs = getProductReviews(p.id);
           return revs.totalCount > 1000 && p.rating >= 4.5;
@@ -194,14 +183,13 @@
 
       function getProductReviews(productId) {
         const productReviews = reviewsData[productId.toString()] || [];
-        // Вариативность: 0-10 видимых, 0-30000 общих
-        const visibleCount = Math.min(productReviews.length, Math.floor(Math.random() * 11)); // 0-10
+        const visibleCount = Math.min(productReviews.length, Math.floor(Math.random() * 11));
         const totalCount = productReviews.length > 0 ? Math.floor(Math.random() * 30001) : 0;
         const selected = [...productReviews].sort((a,b) => b.likes - a.likes).slice(0, visibleCount);
         return { reviews: selected, totalCount };
       }
 
-      // --- Избранное и корзина ---
+      // Избранное и корзина
       function toggleFavorite(productId) {
         if (favorites.includes(productId)) {
           favorites = favorites.filter(id => id !== productId);
@@ -212,7 +200,6 @@
         updateFavCount();
         renderCurrentView();
       }
-
       function isFavorite(productId) { return favorites.includes(productId); }
 
       function addToCart(productId) {
@@ -223,7 +210,6 @@
         updateCartCount();
         showToast('Добавлено в корзину');
       }
-
       function removeFromCart(productId) {
         cart = cart.filter(id => id !== productId);
         localStorage.setItem('nemarket_cart', JSON.stringify(cart));
@@ -231,14 +217,10 @@
         showToast('Удалено из корзины');
       }
 
-      function updateCartCount() {
-        document.getElementById('cartCount').textContent = cart.length;
-      }
-      function updateFavCount() {
-        document.getElementById('favCount').textContent = favorites.length;
-      }
+      function updateCartCount() { document.getElementById('cartCount').textContent = cart.length; }
+      function updateFavCount() { document.getElementById('favCount').textContent = favorites.length; }
 
-      // --- Поиск по триграммам ---
+      // Поиск по триграммам
       function trigramSimilarity(query, text) {
         if (!query || !text) return 0;
         const trigrams = s => {
@@ -257,9 +239,7 @@
 
       function filterProducts() {
         let filtered = products;
-        if (currentCategory !== 'all') {
-          filtered = filtered.filter(p => p.category === currentCategory);
-        }
+        if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
         if (currentSearch.trim()) {
           const q = currentSearch.trim().toLowerCase();
           filtered = filtered.filter(p => {
@@ -269,11 +249,10 @@
             return nameSim > 0.3 || descSim > 0.2 || companySim > 0.3 || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
           });
         }
-        // Перемешиваем случайно
         return filtered.sort(() => Math.random() - 0.5);
       }
 
-      // --- Рендер ---
+      // Рендер
       function renderProducts(containerId, productList) {
         const grid = document.getElementById(containerId);
         if (!grid) return;
@@ -281,12 +260,11 @@
           const inFav = isFavorite(p.id);
           const popularClass = popularIds.has(p.id) ? 'popular' : '';
           const popularBadge = popularIds.has(p.id) ? `<div class="popular-badge">🔥 Хит</div>` : '';
-          const imgUrl = getImageUrl(p.id, 1);
           return `
             <div class="product-card ${popularClass}" onclick="openProduct(${p.id})">
               ${popularBadge}
               <div class="img-wrap">
-                <img src="${imgUrl}" onerror="this.onerror=null; this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="${p.name}">
+                <img src="${getImageUrl(p.id, 1)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="${p.name}">
                 <div class="img-fallback" style="display:none;">📷 Нет фото</div>
               </div>
               <button class="heart-btn ${inFav?'active':''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})">❤️</button>
@@ -332,9 +310,7 @@
         }
       }
 
-      function nextFeed() {
-        renderFeed();
-      }
+      function nextFeed() { renderFeed(); }
 
       function renderFavorites() {
         const main = document.getElementById('mainContent');
@@ -347,6 +323,7 @@
         renderProducts('favGrid', favProducts);
       }
 
+      // Корзина с бонусами и рассрочкой
       function renderCart() {
         const main = document.getElementById('mainContent');
         const cartProducts = products.filter(p => cart.includes(p.id));
@@ -355,25 +332,27 @@
           return;
         }
         let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
-        let bonus = Math.round(total * 0.01);
+        let bonusToEarn = Math.round(total * 0.01);
+        const maxBonusUse = Math.round(total * 0.5);
+        const usableBonus = Math.min(bonusBalance, maxBonusUse);
+
         main.innerHTML = `
           <div style="padding:16px;">
             <h2>Корзина</h2>
+            <div style="margin-bottom:12px;">💰 Ваш бонусный баланс: <strong>${bonusBalance.toLocaleString()}</strong> бонусов</div>
             ${cartProducts.map(p => `
               <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
                 <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
                 <div style="flex:1">${p.name} <br> ${p.price.toLocaleString()} ₽</div>
                 <button onclick="removeFromCart(${p.id})" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
               </div>`).join('')}
-            <p><strong>Итого: ${total.toLocaleString()} ₽</strong></p>
-            <p style="color:var(--accent)">Будет начислено бонусов: ${bonus}</p>
-            <div>
-              <label><input type="radio" name="delivery" checked> Самовывоз (ПВЗ)</label><br>
-              <label><input type="radio" name="delivery" onchange="document.getElementById('addressField').style.display=this.checked?'block':'none'"> Курьером</label>
-              <div id="addressField" style="display:none; margin-top:8px;">
-                <input type="text" placeholder="Адрес доставки" style="width:100%;padding:8px;">
-                <small>Укажите любой адрес, информация никуда не собирается и не распространяется</small>
-              </div>
+            <p><strong>Сумма: ${total.toLocaleString()} ₽</strong></p>
+            <p style="color:var(--accent)">Будет начислено кешбэком: ${bonusToEarn} бонусов</p>
+            <div style="margin:12px 0;">
+              <label><input type="checkbox" id="useBonus" onchange="updateTotal()"> Использовать бонусы (до 50% стоимости)</label><br>
+              <small>Можно списать: ${usableBonus.toLocaleString()} бонусов</small>
+              <input type="range" id="bonusSlider" min="0" max="${usableBonus}" value="0" step="1" style="width:100%; margin-top:8px;" oninput="document.getElementById('bonusValue').textContent=this.value; updateTotal();">
+              <span id="bonusValue">0</span> бонусов
             </div>
             <select id="installmentSelect" onchange="updateTotal()">
               <option value="0">Без рассрочки</option>
@@ -383,34 +362,66 @@
               <option value="24">24 мес. (7%)</option>
             </select>
             <p id="installmentInfo"></p>
+            <p><strong>Итого к оплате: <span id="finalTotal">${total.toLocaleString()}</span> ₽</strong></p>
+            <div style="margin-top:12px;">
+              <label><input type="radio" name="delivery" checked> Самовывоз (ПВЗ)</label><br>
+              <label><input type="radio" name="delivery" onchange="document.getElementById('addressField').style.display=this.checked?'block':'none'"> Курьером</label>
+              <div id="addressField" style="display:none; margin-top:8px;">
+                <input type="text" placeholder="Адрес доставки" style="width:100%;padding:8px;">
+                <small>Укажите любой адрес, информация никуда не собирается и не распространяется</small>
+              </div>
+            </div>
             <button onclick="checkout()" style="background:var(--accent);color:#fff;border:none;padding:12px;border-radius:24px;width:100%;font-weight:bold;margin-top:12px;">Оформить заказ</button>
           </div>`;
         updateTotal();
       }
 
       function updateTotal() {
-        const select = document.getElementById('installmentSelect');
-        if (!select) return;
-        const months = parseInt(select.value);
         const cartProducts = products.filter(p => cart.includes(p.id));
+        if (cartProducts.length === 0) return;
         let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
+        const useBonusCheck = document.getElementById('useBonus');
+        const bonusSlider = document.getElementById('bonusSlider');
+        const bonusToUse = (useBonusCheck && useBonusCheck.checked && bonusSlider) ? parseInt(bonusSlider.value) : 0;
+        total -= bonusToUse;
+        if (total < 0) total = 0;
+
+        const months = parseInt(document.getElementById('installmentSelect')?.value || 0);
         let commission = 0;
         if (months === 6) commission = 0.02;
         else if (months === 12) commission = 0.05;
         else if (months === 24) commission = 0.07;
         const final = Math.round(total * (1 + commission));
-        document.getElementById('installmentInfo').innerText = months > 0 ? `Сумма с комиссией: ${final.toLocaleString()} ₽, платёж ~${Math.round(final/months).toLocaleString()} ₽/мес.` : '';
+        document.getElementById('finalTotal').textContent = final.toLocaleString();
+        if (months > 0) {
+          document.getElementById('installmentInfo').innerText = `Платёж ~${Math.round(final/months).toLocaleString()} ₽/мес.`;
+        } else {
+          document.getElementById('installmentInfo').innerText = '';
+        }
       }
 
       function checkout() {
-        alert('🎉 Заказ оформлен! Но помните: на NEmarket ничего нельзя заказать. Бонусы начислены (в воображении).');
+        const cartProducts = products.filter(p => cart.includes(p.id));
+        if (cartProducts.length === 0) return;
+        let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
+        const useBonusCheck = document.getElementById('useBonus');
+        const bonusSlider = document.getElementById('bonusSlider');
+        const bonusToUse = (useBonusCheck && useBonusCheck.checked && bonusSlider) ? parseInt(bonusSlider.value) : 0;
+        const bonusToEarn = Math.round(total * 0.01);
+
+        // Обновляем бонусный баланс
+        bonusBalance = bonusBalance - bonusToUse + bonusToEarn;
+        if (bonusBalance < 0) bonusBalance = 0;
+        localStorage.setItem('nemarket_bonus', bonusBalance);
+
         cart = [];
         localStorage.setItem('nemarket_cart', JSON.stringify(cart));
         updateCartCount();
+        alert(`🎉 Заказ оформлен! Начислено бонусов: ${bonusToEarn}, использовано: ${bonusToUse}. Баланс: ${bonusBalance.toLocaleString()} бонусов.\nНо помните: на NEmarket ничего нельзя заказать по-настоящему!`);
         switchTab('home');
       }
 
-      // --- Модальное окно товара ---
+      // Модальное окно товара
       function openProduct(productId) {
         const p = products.find(pr => pr.id === productId);
         if (!p) return;
@@ -436,7 +447,7 @@
         document.getElementById('productModalOverlay').classList.remove('open');
       }
 
-      // --- Табы ---
+      // Табы
       function switchTab(tab) {
         currentTab = tab;
         document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.remove('active'));
@@ -447,17 +458,12 @@
         renderCurrentView();
       }
 
+      let currentTab = 'home';
       function renderCurrentView() {
-        const main = document.getElementById('mainContent');
-        if (currentTab === 'home') {
-          renderHome();
-        } else if (currentTab === 'feed') {
-          renderFeed();
-        } else if (currentTab === 'favorites') {
-          renderFavorites();
-        } else if (currentTab === 'cart') {
-          renderCart();
-        }
+        if (currentTab === 'home') renderHome();
+        else if (currentTab === 'feed') renderFeed();
+        else if (currentTab === 'favorites') renderFavorites();
+        else if (currentTab === 'cart') renderCart();
       }
 
       function renderHome() {
@@ -480,11 +486,11 @@
         renderHome();
       }
 
-      // --- Инициализация ---
+      // Инициализация
       async function init() {
         await loadProducts();
         await loadReviews();
-        // Категории
+
         const categories = ['all', 'electronics', 'clothing', 'home', 'sports', 'beauty', 'food', 'books', 'toys', 'pets', 'auto', 'office'];
         const catNames = { all:'Все', electronics:'Электроника', clothing:'Одежда', home:'Дом', sports:'Спорт', beauty:'Красота', food:'Продукты', books:'Книги', toys:'Игрушки', pets:'Зоотовары', auto:'Авто', office:'Офис' };
         const nav = document.getElementById('navCategories');
@@ -499,8 +505,8 @@
             switchTab('home');
           }
         });
-        // Активируем "Все"
         nav.querySelector('[data-cat="all"]').classList.add('active');
+
         updateCartCount();
         updateFavCount();
         switchTab('home');
