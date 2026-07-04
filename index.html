@@ -150,7 +150,11 @@
 
   <script>
     (() => {
+      // Правильные Raw‑ссылки на файлы в вашем репозитории
+      const PRODUCTS_URL = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/products.json';
+      const REVIEWS_URL = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/reviews.json';
       const GITHUB_IMAGE_BASE = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/image/';
+
       function getImageUrl(productId, imageNum) {
         return `${GITHUB_IMAGE_BASE}${productId}-${imageNum}.jpeg`;
       }
@@ -261,7 +265,7 @@
 
       async function loadProducts() {
         try {
-          const resp = await fetch('products.json');
+          const resp = await fetch(PRODUCTS_URL);
           if (!resp.ok) throw new Error('products.json not found');
           products = await resp.json();
         } catch (e) {
@@ -272,7 +276,7 @@
 
       async function loadReviews() {
         try {
-          const resp = await fetch('reviews.json');
+          const resp = await fetch(REVIEWS_URL);
           if (!resp.ok) throw new Error('reviews.json not found');
           reviewsData = await resp.json();
         } catch (e) {
@@ -423,15 +427,17 @@
         const cartItemsHtml = cart.map((item, index) => {
           const p = products.find(p => p.id === item.id);
           if (!p) return '';
-          const itemTotal = p.price * item.quantity;
-          total += itemTotal;
+          let itemPrice = p.price;
+          if (item.options) item.options.forEach(o => itemPrice += o.priceChange || 0);
+          const lineTotal = itemPrice * item.quantity;
+          total += lineTotal;
           const optionsStr = item.options && item.options.length ? item.options.map(o => `${o.label}: ${o.value} ${o.priceChange>0?'+'+o.priceChange+'₽':''}`).join(', ') : '';
           return `
             <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
               <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
               <div style="flex:1">
                 <div>${p.name} ${optionsStr ? '(' + optionsStr + ')' : ''}</div>
-                <div style="font-weight:600;">${p.price.toLocaleString()} ₽</div>
+                <div style="font-weight:600;">${itemPrice.toLocaleString()} ₽</div>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
                   <button onclick="updateCartQuantity(${index}, -1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">−</button>
                   <span>${item.quantity}</span>
@@ -500,9 +506,7 @@
           const p = products.find(p => p.id === item.id);
           if (p) {
             let itemPrice = p.price;
-            if (item.options) {
-              item.options.forEach(o => itemPrice += o.priceChange || 0);
-            }
+            if (item.options) item.options.forEach(o => itemPrice += o.priceChange || 0);
             total += itemPrice * item.quantity;
           }
         });
