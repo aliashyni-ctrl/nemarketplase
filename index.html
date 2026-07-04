@@ -107,6 +107,7 @@
     .checkout-modal { text-align: center; padding: 24px; }
     .checkout-modal h2 { margin-bottom: 16px; }
     .checkout-modal .check-details { background: #f9f9fb; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: left; }
+    .company-header { padding: 16px; background: #fff; border-bottom: 1px solid var(--border); }
     @media (max-width: 600px) {
       .products-grid { grid-template-columns: repeat(2, 1fr); }
       .header { padding: 0 8px; }
@@ -153,14 +154,14 @@
 
       let products = [];
       let reviewsData = {};
-      let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]'); // [{id, quantity}]
+      let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]');
       let favorites = JSON.parse(localStorage.getItem('nemarket_fav') || '[]');
       let bonusBalance = parseInt(localStorage.getItem('nemarket_bonus') || '0');
       let currentCategory = 'all';
       let currentSearch = '';
       let popularIds = new Set();
       let currentInstallment = 0;
-      let companyFilter = null; // для канала компании
+      let companyFilter = null; 
 
       function saveCart() { localStorage.setItem('nemarket_cart', JSON.stringify(cart)); }
 
@@ -238,7 +239,7 @@
           if (!resp.ok) throw new Error('reviews.json not found');
           reviewsData = await resp.json();
         } catch (e) {
-          console.warn('reviews.json не загружен');
+          console.warn('reviews.json не загружен, используется пустой объект');
           reviewsData = {};
         }
         selectPopularProducts();
@@ -533,7 +534,7 @@
           <button class="close" onclick="closeModal()">✕</button>
           <div class="modal-gallery">${gallery}</div>
           <h3>${p.name} ${adultBadge}</h3>
-          <p class="company" style="color:var(--accent);text-decoration:underline;cursor:pointer;" onclick="showCompany('${p.company}')">${p.company}</p>
+          <p class="company" style="color:var(--accent);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation(); showCompany('${p.company}')">${p.company}</p>
           <p style="font-size:24px;font-weight:800">${p.price.toLocaleString()} ₽ ${p.oldPrice?`<span style="font-size:16px;color:#999;text-decoration:line-through">${p.oldPrice.toLocaleString()} ₽</span>`:''}</p>
           <div class="installment">Рассрочка: от ${Math.round(p.price/3).toLocaleString()} ₽ × 3 мес.</div>
           <div class="bonus">+${Math.round(p.price*0.01)} бонусов</div>
@@ -568,7 +569,7 @@
         else if (tab === 'feed') document.querySelector('.bottom-nav button:nth-child(2)').classList.add('active');
         else if (tab === 'favorites') document.querySelector('.bottom-nav button:nth-child(3)').classList.add('active');
         else if (tab === 'cart') document.querySelector('.bottom-nav button:nth-child(4)').classList.add('active');
-        companyFilter = null; // сброс канала компании при смене вкладки
+        if (tab !== 'home') companyFilter = null; // сбрасываем при уходе с главной
         renderCurrentView();
       }
 
@@ -583,7 +584,12 @@
         const main = document.getElementById('mainContent');
         const filtered = filterProducts();
         if (companyFilter) {
-          main.innerHTML = `<div style="padding:16px;"><h3>Товары компании «${companyFilter}» <button onclick="companyFilter=null;switchTab('home')" style="border:none;background:none;color:var(--accent);cursor:pointer;">✕</button></h3><div class="products-grid" id="homeGrid"></div></div>`;
+          main.innerHTML = `
+            <div class="company-header">
+              <h3>Товары компании «${companyFilter}»</h3>
+              <button onclick="companyFilter=null; switchTab('home')" style="border:none;background:var(--accent-light);color:var(--accent);padding:6px 12px;border-radius:16px;cursor:pointer;">← Ко всем товарам</button>
+            </div>
+            <div class="products-grid" id="homeGrid"></div>`;
         } else {
           main.innerHTML = `<div class="products-grid" id="homeGrid"></div>`;
         }
@@ -602,7 +608,7 @@
 
       function handleSearch() {
         currentSearch = document.getElementById('searchInput').value;
-        companyFilter = null; // поиск сбрасывает канал
+        companyFilter = null;
         renderHome();
       }
 
