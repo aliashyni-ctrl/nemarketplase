@@ -108,6 +108,9 @@
     .checkout-modal h2 { margin-bottom: 16px; }
     .checkout-modal .check-details { background: #f9f9fb; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: left; }
     .company-header { padding: 16px; background: #fff; border-bottom: 1px solid var(--border); }
+    .option-group { margin-bottom: 12px; }
+    .option-group label { font-weight: 600; display: block; margin-bottom: 4px; }
+    .option-group select, .option-group input[type="radio"] { margin-right: 6px; }
     @media (max-width: 600px) {
       .products-grid { grid-template-columns: repeat(2, 1fr); }
       .header { padding: 0 8px; }
@@ -152,6 +155,42 @@
         return `${GITHUB_IMAGE_BASE}${productId}-${imageNum}.jpeg`;
       }
 
+      const productOptions = {
+        1: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Белый'], priceChange: [0, 0] }],
+        2: [{ type: 'select', label: 'Размер', values: ['39', '40', '41', '42', '43', '44', '45', '46'], priceChange: [0,0,0,0,0,0,0,0] },
+            { type: 'select', label: 'Цвет', values: ['Синий', 'Черный', 'Белый'], priceChange: [0,0,0] }],
+        3: [{ type: 'select', label: 'Объем', values: ['30 мл', '50 мл'], priceChange: [0, 300] }],
+        4: [{ type: 'checkbox', label: 'Дополнительные насадки', values: ['Да (+1000₽)'], priceChange: [1000] }],
+        6: [{ type: 'select', label: 'Размер', values: ['28', '30', '32', '34', '36', '38'], priceChange: [0,0,0,0,0,0] },
+            { type: 'select', label: 'Цвет', values: ['Синий', 'Черный', 'Серый'], priceChange: [0,0,0] }],
+        8: [{ type: 'checkbox', label: 'Дополнительные фигурки', values: ['Да (+500₽)'], priceChange: [500] }],
+        9: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Белый'], priceChange: [0, 0] }],
+        12: [{ type: 'select', label: 'Цвет', values: ['Изумрудный', 'Бордовый', 'Черный', 'Темно-синий'], priceChange: [0,0,0,0] },
+             { type: 'select', label: 'Размер', values: ['42', '44', '46', '48', '50', '52', '54'], priceChange: [0,0,0,0,0,0,0] }],
+        18: [{ type: 'select', label: 'Переключатели', values: ['Cherry MX Blue', 'Cherry MX Red (+500₽)'], priceChange: [0, 500] }],
+        25: [{ type: 'select', label: 'Цвет ремешка', values: ['Черный', 'Белый', 'Синий'], priceChange: [0,0,0] }],
+        27: [{ type: 'select', label: 'Размер', values: ['42', '44', '46', '48', '50', '52', '54', '56', '58'], priceChange: [0,0,0,0,0,0,0,0,0] }],
+        30: [{ type: 'select', label: 'Размер экрана', values: ['11.6"', '13.3" (+2000₽)'], priceChange: [0, 2000] }],
+        35: [{ type: 'select', label: 'Насадка', values: ['Круглая щетка', 'Концентратор'], priceChange: [0, 0] }],
+        42: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Коричневый'], priceChange: [0, 0] }],
+        56: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Белый'], priceChange: [0, 0] }],
+        62: [{ type: 'select', label: 'Размер', values: ['46', '48', '50', '52', '54', '56'], priceChange: [0,0,0,0,0,0] },
+             { type: 'select', label: 'Цвет', values: ['Темно-синий', 'Серый', 'Черный'], priceChange: [0,0,0] }],
+        68: [{ type: 'select', label: 'Размер', values: ['39', '40', '41', '42', '43', '44', '45', '46'], priceChange: [0,0,0,0,0,0,0,0] },
+             { type: 'select', label: 'Цвет', values: ['Белый', 'Голубой', 'Серый', 'Полоска'], priceChange: [0,0,0,0] }],
+        76: [{ type: 'select', label: 'Длина кабеля', values: ['2 м', '3 м (+300₽)'], priceChange: [0, 300] }],
+        77: [{ type: 'select', label: 'Размер', values: ['M', 'L', 'XL', '2XL'], priceChange: [0,0,0,0] }],
+        83: [{ type: 'select', label: 'Размер', values: ['48', '50', '52', '54', '56'], priceChange: [0,0,0,0,0] }],
+        101: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Синий'], priceChange: [0, 0] }],
+        104: [{ type: 'select', label: 'Мощность', values: ['350W', '500W (+5000₽)'], priceChange: [0, 5000] }],
+        110: [{ type: 'select', label: 'Цвет корпуса', values: ['Черный титан', 'Серебристый'], priceChange: [0, 0] },
+              { type: 'select', label: 'Ремешок', values: ['Кожаный', 'Силиконовый'], priceChange: [0, 0] }],
+        116: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Розовый', 'Белый'], priceChange: [0,0,0] }],
+        122: [{ type: 'select', label: 'Цвет', values: ['Черный', 'Белый', 'Розовый'], priceChange: [0,0,0] }],
+        135: [{ type: 'select', label: 'Размер', values: ['48', '50', '52', '54', '56'], priceChange: [0,0,0,0,0] }],
+        136: [{ type: 'select', label: 'Размер', values: ['39', '40', '41', '42', '43', '44', '45'], priceChange: [0,0,0,0,0,0,0] }]
+      };
+
       let products = [];
       let reviewsData = {};
       let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]');
@@ -161,21 +200,20 @@
       let currentSearch = '';
       let popularIds = new Set();
       let currentInstallment = 0;
-      let companyFilter = null; 
+      let companyFilter = null;
 
       function saveCart() { localStorage.setItem('nemarket_cart', JSON.stringify(cart)); }
 
       function getCartQuantity(productId) {
-        const item = cart.find(i => i.id === productId);
-        return item ? item.quantity : 0;
+        return cart.filter(i => i.id === productId).reduce((sum, i) => sum + i.quantity, 0);
       }
 
-      function addToCart(productId) {
-        const item = cart.find(i => i.id === productId);
-        if (item) {
-          item.quantity += 1;
+      function addToCart(productId, selectedOptions = []) {
+        const existing = cart.find(i => i.id === productId && JSON.stringify(i.options) === JSON.stringify(selectedOptions));
+        if (existing) {
+          existing.quantity += 1;
         } else {
-          cart.push({ id: productId, quantity: 1 });
+          cart.push({ id: productId, quantity: 1, options: selectedOptions });
         }
         saveCart();
         updateCartCount();
@@ -183,20 +221,19 @@
         renderCurrentView();
       }
 
-      function removeFromCart(productId) {
-        cart = cart.filter(i => i.id !== productId);
+      function removeFromCart(index) {
+        cart.splice(index, 1);
         saveCart();
         updateCartCount();
         showToast('Удалено из корзины');
         renderCurrentView();
       }
 
-      function updateCartQuantity(productId, delta) {
-        const item = cart.find(i => i.id === productId);
-        if (!item) return;
-        item.quantity += delta;
-        if (item.quantity <= 0) {
-          cart = cart.filter(i => i.id !== productId);
+      function updateCartQuantity(index, delta) {
+        if (index < 0 || index >= cart.length) return;
+        cart[index].quantity += delta;
+        if (cart[index].quantity <= 0) {
+          cart.splice(index, 1);
         }
         saveCart();
         updateCartCount();
@@ -294,7 +331,7 @@
             const nameSim = trigramSimilarity(q, p.name);
             const descSim = trigramSimilarity(q, p.desc || '');
             const companySim = trigramSimilarity(q, p.company);
-            return nameSim > 0.4 || descSim > 0.3 || companySim > 0.4 || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
+            return nameSim > 0.5 || descSim > 0.4 || companySim > 0.4 || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
           });
         }
         return filtered.sort(() => Math.random() - 0.5);
@@ -378,16 +415,34 @@
 
       function renderCart() {
         const main = document.getElementById('mainContent');
-        const cartItems = cart.filter(i => products.some(p => p.id === i.id));
-        if (cartItems.length === 0) {
+        if (cart.length === 0) {
           main.innerHTML = '<div style="text-align:center; padding:40px;">Корзина пуста</div>';
           return;
         }
-        let total = cartItems.reduce((sum, item) => {
+        let total = 0;
+        const cartItemsHtml = cart.map((item, index) => {
           const p = products.find(p => p.id === item.id);
-          return p ? sum + p.price * item.quantity : sum;
-        }, 0);
-        let bonusToEarn = Math.round(total * 0.01);
+          if (!p) return '';
+          const itemTotal = p.price * item.quantity;
+          total += itemTotal;
+          const optionsStr = item.options && item.options.length ? item.options.map(o => `${o.label}: ${o.value} ${o.priceChange>0?'+'+o.priceChange+'₽':''}`).join(', ') : '';
+          return `
+            <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+              <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+              <div style="flex:1">
+                <div>${p.name} ${optionsStr ? '(' + optionsStr + ')' : ''}</div>
+                <div style="font-weight:600;">${p.price.toLocaleString()} ₽</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                  <button onclick="updateCartQuantity(${index}, -1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">−</button>
+                  <span>${item.quantity}</span>
+                  <button onclick="updateCartQuantity(${index}, 1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">+</button>
+                </div>
+              </div>
+              <button onclick="removeFromCart(${index})" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
+            </div>`;
+        }).join('');
+
+        const bonusToEarn = Math.round(total * 0.01);
         const maxBonusUse = Math.round(total * 0.5);
         const usableBonus = Math.min(bonusBalance, maxBonusUse);
 
@@ -395,24 +450,7 @@
           <div style="padding:16px;">
             <h2>Корзина</h2>
             <div style="margin-bottom:12px;">💰 Ваш бонусный баланс: <strong>${bonusBalance.toLocaleString()}</strong> бонусов</div>
-            ${cartItems.map(item => {
-              const p = products.find(p => p.id === item.id);
-              if (!p) return '';
-              return `
-                <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
-                  <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
-                  <div style="flex:1">
-                    <div>${p.name}</div>
-                    <div style="font-weight:600;">${p.price.toLocaleString()} ₽</div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
-                      <button onclick="updateCartQuantity(${p.id}, -1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">−</button>
-                      <span>${item.quantity}</span>
-                      <button onclick="updateCartQuantity(${p.id}, 1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">+</button>
-                    </div>
-                  </div>
-                  <button onclick="removeFromCart(${p.id})" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
-                </div>`;
-            }).join('')}
+            ${cartItemsHtml}
             <p><strong>Сумма: ${total.toLocaleString()} ₽</strong></p>
             <p style="color:var(--accent)">Будет начислено кешбэком: ${bonusToEarn} бонусов</p>
             <div style="margin:12px 0;">
@@ -456,12 +494,18 @@
       }
 
       function updateCartTotal() {
-        const cartItems = cart.filter(i => products.some(p => p.id === i.id));
-        if (cartItems.length === 0) return;
-        let total = cartItems.reduce((sum, item) => {
+        if (cart.length === 0) return;
+        let total = 0;
+        cart.forEach(item => {
           const p = products.find(p => p.id === item.id);
-          return p ? sum + p.price * item.quantity : sum;
-        }, 0);
+          if (p) {
+            let itemPrice = p.price;
+            if (item.options) {
+              item.options.forEach(o => itemPrice += o.priceChange || 0);
+            }
+            total += itemPrice * item.quantity;
+          }
+        });
         const bonusSlider = document.getElementById('bonusSlider');
         const bonusToUse = bonusSlider ? parseInt(bonusSlider.value) : 0;
         total -= bonusToUse;
@@ -497,12 +541,20 @@
       }
 
       function checkout() {
-        const cartItems = cart.filter(i => products.some(p => p.id === i.id));
-        if (cartItems.length === 0) return;
-        let total = cartItems.reduce((sum, item) => {
+        if (cart.length === 0) return;
+        let total = 0;
+        let details = '';
+        cart.forEach(item => {
           const p = products.find(p => p.id === item.id);
-          return p ? sum + p.price * item.quantity : sum;
-        }, 0);
+          if (p) {
+            let itemPrice = p.price;
+            if (item.options) item.options.forEach(o => itemPrice += o.priceChange || 0);
+            const lineTotal = itemPrice * item.quantity;
+            total += lineTotal;
+            const optionsStr = item.options && item.options.length ? ' (' + item.options.map(o => o.value).join(', ') + ')' : '';
+            details += `${p.name}${optionsStr} ×${item.quantity} — ${lineTotal.toLocaleString()} ₽<br>`;
+          }
+        });
         const bonusSlider = document.getElementById('bonusSlider');
         const bonusToUse = bonusSlider ? parseInt(bonusSlider.value) : 0;
         const bonusToEarn = Math.round(total * 0.01);
@@ -511,10 +563,7 @@
         if (bonusBalance < 0) bonusBalance = 0;
         localStorage.setItem('nemarket_bonus', bonusBalance);
 
-        const details = cartItems.map(item => {
-          const p = products.find(p => p.id === item.id);
-          return p ? `${p.name} ×${item.quantity} — ${(p.price*item.quantity).toLocaleString()} ₽` : '';
-        }).join('<br>') + `<br><br>Списано бонусов: ${bonusToUse}<br>Начислено бонусов: ${bonusToEarn}<br>Итоговая сумма: ${document.getElementById('finalTotal').textContent} ₽`;
+        details += `<br>Списано бонусов: ${bonusToUse}<br>Начислено бонусов: ${bonusToEarn}<br>Итоговая сумма: ${document.getElementById('finalTotal').textContent} ₽`;
 
         cart = [];
         saveCart();
@@ -530,22 +579,78 @@
         const gallery = Array.from({length: p.imageCount}, (_, i) => `<img src="${getImageUrl(p.id, i+1)}" onerror="this.style.display='none'">`).join('');
         const cartQty = getCartQuantity(p.id);
         const adultBadge = p.id === 128 ? '<span style="background:#e74c4c;color:#fff;padding:2px 8px;border-radius:8px;font-size:12px;">18+</span>' : '';
+        const options = productOptions[p.id] || [];
+        let optionsHtml = '';
+        if (options.length > 0) {
+          optionsHtml = options.map((opt, idx) => {
+            if (opt.type === 'select') {
+              return `<div class="option-group"><label>${opt.label}</label><select id="opt${idx}" onchange="updateProductPrice(${p.id})">${opt.values.map((v,i) => `<option value="${i}" data-price="${opt.priceChange[i] || 0}">${v}</option>`).join('')}</select></div>`;
+            } else if (opt.type === 'checkbox') {
+              return `<div class="option-group"><label><input type="checkbox" id="opt${idx}" onchange="updateProductPrice(${p.id})" data-price="${opt.priceChange[0] || 0}"> ${opt.label} (${opt.values[0]})</label></div>`;
+            }
+            return '';
+          }).join('');
+        }
+
         document.getElementById('productModal').innerHTML = `
           <button class="close" onclick="closeModal()">✕</button>
           <div class="modal-gallery">${gallery}</div>
           <h3>${p.name} ${adultBadge}</h3>
           <p class="company" style="color:var(--accent);text-decoration:underline;cursor:pointer;" onclick="event.stopPropagation(); showCompany('${p.company}')">${p.company}</p>
-          <p style="font-size:24px;font-weight:800">${p.price.toLocaleString()} ₽ ${p.oldPrice?`<span style="font-size:16px;color:#999;text-decoration:line-through">${p.oldPrice.toLocaleString()} ₽</span>`:''}</p>
+          <p id="modalPrice" style="font-size:24px;font-weight:800">${p.price.toLocaleString()} ₽ ${p.oldPrice?`<span style="font-size:16px;color:#999;text-decoration:line-through">${p.oldPrice.toLocaleString()} ₽</span>`:''}</p>
           <div class="installment">Рассрочка: от ${Math.round(p.price/3).toLocaleString()} ₽ × 3 мес.</div>
           <div class="bonus">+${Math.round(p.price*0.01)} бонусов</div>
-          <button class="add-to-cart-btn ${cartQty>0?'in-cart':''}" onclick="${cartQty>0 ? `updateCartQuantity(${p.id}, 1)` : `addToCart(${p.id})`}">${cartQty>0 ? `✓ В корзине (${cartQty})` : 'Добавить в корзину'}</button>
+          ${optionsHtml}
+          <button id="addToCartBtn" class="add-to-cart-btn ${cartQty>0?'in-cart':''}" onclick="addToCartWithOptions(${p.id})">${cartQty>0 ? `✓ В корзине (${cartQty})` : 'Добавить в корзину'}</button>
           <div style="margin:12px 0; line-height:1.5;">${p.desc}</div>
           <div style="margin-top:12px;"><strong>Отзывы (показано ${reviews.length} из ${totalCount.toLocaleString()}):</strong></div>
           ${reviews.map(r => `<div style="background:#f9f9f9;border-radius:8px;padding:8px;margin:6px 0;"><strong>${r.user}</strong> ${'★'.repeat(r.rating)}<br>${r.text}<br><small>👍 ${r.likes}</small></div>`).join('')}
           <div class="ai-notice">Картинки сгенерированы Алиса AI</div>
         `;
         document.getElementById('productModalOverlay').classList.add('open');
+        if (options.length > 0) {
+          window.updateProductPrice = function(pid) {
+            if (pid !== p.id) return;
+            let additionalPrice = 0;
+            const opts = productOptions[pid] || [];
+            opts.forEach((opt, idx) => {
+              if (opt.type === 'select') {
+                const sel = document.getElementById(`opt${idx}`);
+                if (sel) additionalPrice += parseInt(sel.options[sel.selectedIndex].dataset.price || 0);
+              } else if (opt.type === 'checkbox') {
+                const cb = document.getElementById(`opt${idx}`);
+                if (cb && cb.checked) additionalPrice += parseInt(cb.dataset.price || 0);
+              }
+            });
+            const basePrice = p.price;
+            const totalPrice = basePrice + additionalPrice;
+            document.getElementById('modalPrice').innerHTML = `${totalPrice.toLocaleString()} ₽ ${p.oldPrice?`<span style="font-size:16px;color:#999;text-decoration:line-through">${p.oldPrice.toLocaleString()} ₽</span>`:''}`;
+          };
+        }
       }
+
+      window.addToCartWithOptions = function(productId) {
+        const p = products.find(pr => pr.id === productId);
+        if (!p) return;
+        const opts = productOptions[productId] || [];
+        const selectedOptions = [];
+        opts.forEach((opt, idx) => {
+          if (opt.type === 'select') {
+            const sel = document.getElementById(`opt${idx}`);
+            if (sel) {
+              const valIdx = sel.selectedIndex;
+              selectedOptions.push({ label: opt.label, value: opt.values[valIdx], priceChange: parseInt(opt.priceChange[valIdx] || 0) });
+            }
+          } else if (opt.type === 'checkbox') {
+            const cb = document.getElementById(`opt${idx}`);
+            if (cb && cb.checked) {
+              selectedOptions.push({ label: opt.label, value: opt.values[0], priceChange: parseInt(opt.priceChange[0] || 0) });
+            }
+          }
+        });
+        addToCart(productId, selectedOptions);
+        closeModal();
+      };
 
       function closeModal() {
         document.getElementById('productModalOverlay').classList.remove('open');
@@ -558,6 +663,11 @@
         currentCategory = 'all';
         document.querySelectorAll('.nav-cat').forEach(b => b.classList.remove('active'));
         document.querySelector('.nav-cat[data-cat="all"]').classList.add('active');
+        switchTab('home');
+      }
+
+      function resetCompanyFilter() {
+        companyFilter = null;
         switchTab('home');
       }
 
@@ -587,7 +697,7 @@
           main.innerHTML = `
             <div class="company-header">
               <h3>Товары компании «${companyFilter}»</h3>
-              <button onclick="companyFilter=null; switchTab('home')" style="border:none;background:var(--accent-light);color:var(--accent);padding:6px 12px;border-radius:16px;cursor:pointer;">← Ко всем товарам</button>
+              <button onclick="resetCompanyFilter()" style="border:none;background:var(--accent-light);color:var(--accent);padding:6px 12px;border-radius:16px;cursor:pointer;">← Ко всем товарам</button>
             </div>
             <div class="products-grid" id="homeGrid"></div>`;
         } else {
@@ -655,6 +765,7 @@
       window.updateCartTotal = updateCartTotal;
       window.showCompany = showCompany;
       window.closeCheckoutModal = closeCheckoutModal;
+      window.resetCompanyFilter = resetCompanyFilter;
 
       function showToast(msg) {
         const toast = document.getElementById('toast');
