@@ -150,10 +150,10 @@
 
   <script>
     (() => {
-      // Правильные Raw‑ссылки на файлы в вашем репозитории
-      const PRODUCTS_URL = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/products.json';
-      const REVIEWS_URL = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/reviews.json';
-      const GITHUB_IMAGE_BASE = 'https://raw.githubusercontent.com/aliashyni-ctrl/nemarketplase/main/image/';
+      // Локальные файлы (лежат в той же папке, что и HTML)
+      const PRODUCTS_URL = 'products.json';
+      const REVIEWS_URL = 'reviews.json';
+      const GITHUB_IMAGE_BASE = 'image/';   // Папка с изображениями (можно оставить или изменить)
 
       function getImageUrl(productId, imageNum) {
         return `${GITHUB_IMAGE_BASE}${productId}-${imageNum}.jpeg`;
