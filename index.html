@@ -569,7 +569,7 @@
         else if (tab === 'feed') document.querySelector('.bottom-nav button:nth-child(2)').classList.add('active');
         else if (tab === 'favorites') document.querySelector('.bottom-nav button:nth-child(3)').classList.add('active');
         else if (tab === 'cart') document.querySelector('.bottom-nav button:nth-child(4)').classList.add('active');
-        if (tab !== 'home') companyFilter = null; // сбрасываем при уходе с главной
+        if (tab !== 'home') companyFilter = null;
         renderCurrentView();
       }
 
