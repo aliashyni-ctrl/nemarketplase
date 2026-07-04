@@ -49,11 +49,12 @@
     .product-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
     .product-card.popular { border-color: var(--warning); }
     .popular-badge { position: absolute; top: 8px; left: 8px; background: var(--warning); color: #fff; border-radius: 12px; padding: 3px 8px; font-size: 11px; font-weight: bold; z-index: 2; display: flex; align-items: center; gap: 4px; }
+    .adult-badge { position: absolute; top: 8px; left: 8px; background: #e74c4c; color: #fff; border-radius: 12px; padding: 3px 8px; font-size: 11px; font-weight: bold; z-index: 2; }
     .img-wrap { position: relative; aspect-ratio: 1/1; background: #f0f0f0; display: flex; align-items: center; justify-content: center; }
     .img-wrap img { width: 100%; height: 100%; object-fit: cover; }
     .img-wrap .img-fallback { background: #ccc; color: #888; font-size: 12px; display: none; align-items: center; justify-content: center; width: 100%; height: 100%; }
     .card-body { padding: 10px; flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .card-body .company { font-size: 11px; color: #999; text-transform: uppercase; }
+    .card-body .company { font-size: 11px; color: var(--accent); text-decoration: underline; cursor: pointer; text-transform: uppercase; }
     .card-body .name { font-weight: 600; font-size: 14px; line-height: 1.3; }
     .card-body .price { font-weight: 800; font-size: 18px; }
     .old-price { font-size: 13px; color: #aaa; text-decoration: line-through; margin-left: 6px; }
@@ -85,11 +86,13 @@
     .modal-gallery img { width: 200px; height: 200px; object-fit: cover; border-radius: 12px; }
     .ai-notice { font-size: 9px; color: #ccc; text-align: right; margin-top: 8px; }
     .feed-container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: calc(100vh - 200px); }
-    .feed-card { background: #fff; border-radius: 20px; box-shadow: var(--shadow); width: 300px; padding: 20px; text-align: center; }
+    .feed-card { background: #fff; border-radius: 24px; box-shadow: 0 12px 32px rgba(0,0,0,0.1); width: 320px; padding: 24px; text-align: center; }
+    .feed-card .img-wrap { width: 200px; height: 200px; margin: 0 auto 16px; border-radius: 16px; overflow: hidden; }
     .feed-actions { display: flex; justify-content: space-around; margin-top: 20px; }
-    .feed-btn { width: 60px; height: 60px; border-radius: 50%; border: none; font-size: 28px; cursor: pointer; }
+    .feed-btn { width: 64px; height: 64px; border-radius: 50%; border: none; font-size: 32px; cursor: pointer; transition: transform 0.2s; }
     .feed-btn.green { background: #d1fae5; color: var(--success); }
     .feed-btn.red { background: #fde8e8; color: var(--danger); }
+    .feed-btn:active { transform: scale(0.9); }
     .bottom-nav {
       position: fixed; bottom: 0; left: 0; right: 0; background: #fff; border-top: 1px solid var(--border);
       display: flex; justify-content: space-around; padding: 10px 0; z-index: 150; box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
@@ -101,10 +104,14 @@
     .installment-btns { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
     .installment-btn { padding: 6px 12px; border-radius: 18px; border: 1.5px solid var(--border); background: #fff; cursor: pointer; font-size: 13px; transition: 0.2s; }
     .installment-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .checkout-modal { text-align: center; padding: 24px; }
+    .checkout-modal h2 { margin-bottom: 16px; }
+    .checkout-modal .check-details { background: #f9f9fb; border-radius: 16px; padding: 16px; margin: 16px 0; text-align: left; }
     @media (max-width: 600px) {
       .products-grid { grid-template-columns: repeat(2, 1fr); }
       .header { padding: 0 8px; }
       .logo { font-size: 20px; }
+      .feed-card { width: 90%; }
     }
   </style>
 </head>
@@ -126,6 +133,7 @@
   <main id="mainContent" style="padding-bottom: 80px;"></main>
 
   <div class="modal-overlay" id="productModalOverlay"><div class="modal" id="productModal"></div></div>
+  <div class="modal-overlay" id="checkoutModalOverlay"><div class="modal" id="checkoutModal"></div></div>
 
   <div class="bottom-nav">
     <button class="active" onclick="switchTab('home')">🏠 Главная</button>
@@ -145,13 +153,73 @@
 
       let products = [];
       let reviewsData = {};
-      let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]');
+      let cart = JSON.parse(localStorage.getItem('nemarket_cart') || '[]'); // [{id, quantity}]
       let favorites = JSON.parse(localStorage.getItem('nemarket_fav') || '[]');
       let bonusBalance = parseInt(localStorage.getItem('nemarket_bonus') || '0');
       let currentCategory = 'all';
       let currentSearch = '';
       let popularIds = new Set();
       let currentInstallment = 0;
+      let companyFilter = null; // для канала компании
+
+      function saveCart() { localStorage.setItem('nemarket_cart', JSON.stringify(cart)); }
+
+      function getCartQuantity(productId) {
+        const item = cart.find(i => i.id === productId);
+        return item ? item.quantity : 0;
+      }
+
+      function addToCart(productId) {
+        const item = cart.find(i => i.id === productId);
+        if (item) {
+          item.quantity += 1;
+        } else {
+          cart.push({ id: productId, quantity: 1 });
+        }
+        saveCart();
+        updateCartCount();
+        showToast('Добавлено в корзину');
+        renderCurrentView();
+      }
+
+      function removeFromCart(productId) {
+        cart = cart.filter(i => i.id !== productId);
+        saveCart();
+        updateCartCount();
+        showToast('Удалено из корзины');
+        renderCurrentView();
+      }
+
+      function updateCartQuantity(productId, delta) {
+        const item = cart.find(i => i.id === productId);
+        if (!item) return;
+        item.quantity += delta;
+        if (item.quantity <= 0) {
+          cart = cart.filter(i => i.id !== productId);
+        }
+        saveCart();
+        updateCartCount();
+        renderCurrentView();
+      }
+
+      function isInCart(productId) { return getCartQuantity(productId) > 0; }
+
+      function updateCartCount() {
+        document.getElementById('cartCount').textContent = cart.reduce((sum, i) => sum + i.quantity, 0);
+      }
+      function updateFavCount() { document.getElementById('favCount').textContent = favorites.length; }
+
+      function toggleFavorite(productId) {
+        if (favorites.includes(productId)) {
+          favorites = favorites.filter(id => id !== productId);
+        } else {
+          favorites.push(productId);
+        }
+        localStorage.setItem('nemarket_fav', JSON.stringify(favorites));
+        updateFavCount();
+        renderCurrentView();
+      }
+      function isFavorite(productId) { return favorites.includes(productId); }
 
       async function loadProducts() {
         try {
@@ -196,39 +264,6 @@
         return { reviews: selected, totalCount };
       }
 
-      function toggleFavorite(productId) {
-        if (favorites.includes(productId)) {
-          favorites = favorites.filter(id => id !== productId);
-        } else {
-          favorites.push(productId);
-        }
-        localStorage.setItem('nemarket_fav', JSON.stringify(favorites));
-        updateFavCount();
-        renderCurrentView();
-      }
-      function isFavorite(productId) { return favorites.includes(productId); }
-      function isInCart(productId) { return cart.includes(productId); }
-
-      function addToCart(productId) {
-        if (!cart.includes(productId)) {
-          cart.push(productId);
-          localStorage.setItem('nemarket_cart', JSON.stringify(cart));
-        }
-        updateCartCount();
-        showToast('Добавлено в корзину');
-        renderCurrentView();
-      }
-      function removeFromCart(productId) {
-        cart = cart.filter(id => id !== productId);
-        localStorage.setItem('nemarket_cart', JSON.stringify(cart));
-        updateCartCount();
-        showToast('Удалено из корзины');
-        renderCurrentView();
-      }
-
-      function updateCartCount() { document.getElementById('cartCount').textContent = cart.length; }
-      function updateFavCount() { document.getElementById('favCount').textContent = favorites.length; }
-
       function trigramSimilarity(query, text) {
         if (!query || !text) return 0;
         const trigrams = s => {
@@ -247,14 +282,18 @@
 
       function filterProducts() {
         let filtered = products;
-        if (currentCategory !== 'all') filtered = filtered.filter(p => p.category === currentCategory);
+        if (companyFilter) {
+          filtered = filtered.filter(p => p.company === companyFilter);
+        } else if (currentCategory !== 'all') {
+          filtered = filtered.filter(p => p.category === currentCategory);
+        }
         if (currentSearch.trim()) {
           const q = currentSearch.trim().toLowerCase();
           filtered = filtered.filter(p => {
             const nameSim = trigramSimilarity(q, p.name);
             const descSim = trigramSimilarity(q, p.desc || '');
             const companySim = trigramSimilarity(q, p.company);
-            return nameSim > 0.3 || descSim > 0.2 || companySim > 0.3 || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
+            return nameSim > 0.4 || descSim > 0.3 || companySim > 0.4 || p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
           });
         }
         return filtered.sort(() => Math.random() - 0.5);
@@ -265,25 +304,28 @@
         if (!grid) return;
         grid.innerHTML = productList.map(p => {
           const inFav = isFavorite(p.id);
-          const inCart = isInCart(p.id);
+          const cartQty = getCartQuantity(p.id);
           const popularClass = popularIds.has(p.id) ? 'popular' : '';
+          const adultBadge = p.id === 128 ? '<div class="adult-badge">18+</div>' : '';
           const popularBadge = popularIds.has(p.id) ? `<div class="popular-badge">🔥 Хит</div>` : '';
           return `
             <div class="product-card ${popularClass}" onclick="openProduct(${p.id})">
-              ${popularBadge}
+              ${adultBadge}${popularBadge}
               <div class="img-wrap">
                 <img src="${getImageUrl(p.id, 1)}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" alt="${p.name}">
                 <div class="img-fallback" style="display:none;">📷 Нет фото</div>
               </div>
               <button class="heart-btn ${inFav?'active':''}" onclick="event.stopPropagation(); toggleFavorite(${p.id})">❤️</button>
               <div class="card-body">
-                <div class="company">${p.company}</div>
+                <div class="company" onclick="event.stopPropagation(); showCompany('${p.company}')">${p.company}</div>
                 <div class="name">${p.name}</div>
                 <div class="price">${p.price.toLocaleString()} ₽ ${p.oldPrice ? `<span class="old-price">${p.oldPrice.toLocaleString()} ₽</span>` : ''}</div>
                 <div class="installment">от ${Math.round(p.price/3).toLocaleString()} ₽ × 3 мес.</div>
                 <div class="bonus">+${Math.round(p.price*0.01)} бонусов</div>
                 <div class="rating-stars">${'★'.repeat(Math.floor(p.rating))} ${p.rating}</div>
-                <button class="add-to-cart-btn ${inCart?'in-cart':''}" onclick="event.stopPropagation(); ${inCart ? `removeFromCart(${p.id})` : `addToCart(${p.id})`}">${inCart ? '✓ В корзине' : 'Добавить в корзину'}</button>
+                <button class="add-to-cart-btn ${cartQty>0?'in-cart':''}" onclick="event.stopPropagation(); addToCart(${p.id})">
+                  ${cartQty>0 ? `✓ В корзине (${cartQty})` : 'Добавить в корзину'}
+                </button>
               </div>
             </div>`;
         }).join('');
@@ -296,12 +338,12 @@
         main.innerHTML = `
           <div class="feed-container">
             <div class="feed-card">
-              <div class="img-wrap" style="height:200px;">
+              <div class="img-wrap">
                 <img src="${getImageUrl(randomProduct.id,1)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" alt="">
                 <div class="img-fallback" style="display:none;">📷</div>
               </div>
               <h3>${randomProduct.name}</h3>
-              <p>${randomProduct.price.toLocaleString()} ₽</p>
+              <p style="margin:8px 0;">${randomProduct.price.toLocaleString()} ₽</p>
               <button class="add-to-cart-btn" onclick="event.stopPropagation(); addToCart(${randomProduct.id})">Добавить в корзину</button>
             </div>
             <div class="feed-actions">
@@ -335,12 +377,15 @@
 
       function renderCart() {
         const main = document.getElementById('mainContent');
-        const cartProducts = products.filter(p => cart.includes(p.id));
-        if (cartProducts.length === 0) {
+        const cartItems = cart.filter(i => products.some(p => p.id === i.id));
+        if (cartItems.length === 0) {
           main.innerHTML = '<div style="text-align:center; padding:40px;">Корзина пуста</div>';
           return;
         }
-        let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
+        let total = cartItems.reduce((sum, item) => {
+          const p = products.find(p => p.id === item.id);
+          return p ? sum + p.price * item.quantity : sum;
+        }, 0);
         let bonusToEarn = Math.round(total * 0.01);
         const maxBonusUse = Math.round(total * 0.5);
         const usableBonus = Math.min(bonusBalance, maxBonusUse);
@@ -349,17 +394,28 @@
           <div style="padding:16px;">
             <h2>Корзина</h2>
             <div style="margin-bottom:12px;">💰 Ваш бонусный баланс: <strong>${bonusBalance.toLocaleString()}</strong> бонусов</div>
-            ${cartProducts.map(p => `
-              <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
-                <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
-                <div style="flex:1">${p.name} <br> ${p.price.toLocaleString()} ₽</div>
-                <button onclick="removeFromCart(${p.id})" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
-              </div>`).join('')}
+            ${cartItems.map(item => {
+              const p = products.find(p => p.id === item.id);
+              if (!p) return '';
+              return `
+                <div style="display:flex; gap:12px; align-items:center; margin-bottom:12px;">
+                  <img src="${getImageUrl(p.id,1)}" style="width:60px;height:60px;object-fit:cover;border-radius:8px;" onerror="this.style.display='none'">
+                  <div style="flex:1">
+                    <div>${p.name}</div>
+                    <div style="font-weight:600;">${p.price.toLocaleString()} ₽</div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-top:4px;">
+                      <button onclick="updateCartQuantity(${p.id}, -1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">−</button>
+                      <span>${item.quantity}</span>
+                      <button onclick="updateCartQuantity(${p.id}, 1)" style="background:none;border:1px solid #ccc;border-radius:4px;width:24px;height:24px;">+</button>
+                    </div>
+                  </div>
+                  <button onclick="removeFromCart(${p.id})" style="background:none;border:none;font-size:20px;cursor:pointer;">🗑️</button>
+                </div>`;
+            }).join('')}
             <p><strong>Сумма: ${total.toLocaleString()} ₽</strong></p>
             <p style="color:var(--accent)">Будет начислено кешбэком: ${bonusToEarn} бонусов</p>
             <div style="margin:12px 0;">
-              <label><input type="checkbox" id="useBonus" onchange="updateCartTotal()"> Использовать бонусы (до 50% стоимости)</label><br>
-              <small>Можно списать: ${usableBonus.toLocaleString()} бонусов</small>
+              <small>Списать бонусов (до ${usableBonus.toLocaleString()}):</small>
               <input type="range" id="bonusSlider" min="0" max="${usableBonus}" value="0" step="1" style="width:100%; margin-top:8px;" oninput="document.getElementById('bonusValue').textContent=this.value; updateCartTotal();">
               <span id="bonusValue">0</span> бонусов
             </div>
@@ -399,12 +455,14 @@
       }
 
       function updateCartTotal() {
-        const cartProducts = products.filter(p => cart.includes(p.id));
-        if (cartProducts.length === 0) return;
-        let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
-        const useBonusCheck = document.getElementById('useBonus');
+        const cartItems = cart.filter(i => products.some(p => p.id === i.id));
+        if (cartItems.length === 0) return;
+        let total = cartItems.reduce((sum, item) => {
+          const p = products.find(p => p.id === item.id);
+          return p ? sum + p.price * item.quantity : sum;
+        }, 0);
         const bonusSlider = document.getElementById('bonusSlider');
-        const bonusToUse = (useBonusCheck && useBonusCheck.checked && bonusSlider) ? parseInt(bonusSlider.value) : 0;
+        const bonusToUse = bonusSlider ? parseInt(bonusSlider.value) : 0;
         total -= bonusToUse;
         if (total < 0) total = 0;
 
@@ -421,23 +479,46 @@
         }
       }
 
+      function showCheckoutModal(details) {
+        document.getElementById('checkoutModal').innerHTML = `
+          <div class="checkout-modal">
+            <h2>🧾 Чек об оплате</h2>
+            <div class="check-details">${details}</div>
+            <p style="color:var(--text-muted); margin:12px 0;">Но помните: на NEmarket нельзя ничего заказать по-настоящему!</p>
+            <button onclick="closeCheckoutModal()" style="background:var(--accent);color:#fff;border:none;padding:12px 24px;border-radius:24px;font-weight:bold;cursor:pointer;">Понятно</button>
+          </div>
+        `;
+        document.getElementById('checkoutModalOverlay').classList.add('open');
+      }
+
+      function closeCheckoutModal() {
+        document.getElementById('checkoutModalOverlay').classList.remove('open');
+      }
+
       function checkout() {
-        const cartProducts = products.filter(p => cart.includes(p.id));
-        if (cartProducts.length === 0) return;
-        let total = cartProducts.reduce((sum, p) => sum + p.price, 0);
-        const useBonusCheck = document.getElementById('useBonus');
+        const cartItems = cart.filter(i => products.some(p => p.id === i.id));
+        if (cartItems.length === 0) return;
+        let total = cartItems.reduce((sum, item) => {
+          const p = products.find(p => p.id === item.id);
+          return p ? sum + p.price * item.quantity : sum;
+        }, 0);
         const bonusSlider = document.getElementById('bonusSlider');
-        const bonusToUse = (useBonusCheck && useBonusCheck.checked && bonusSlider) ? parseInt(bonusSlider.value) : 0;
+        const bonusToUse = bonusSlider ? parseInt(bonusSlider.value) : 0;
         const bonusToEarn = Math.round(total * 0.01);
 
         bonusBalance = bonusBalance - bonusToUse + bonusToEarn;
         if (bonusBalance < 0) bonusBalance = 0;
         localStorage.setItem('nemarket_bonus', bonusBalance);
 
+        const details = cartItems.map(item => {
+          const p = products.find(p => p.id === item.id);
+          return p ? `${p.name} ×${item.quantity} — ${(p.price*item.quantity).toLocaleString()} ₽` : '';
+        }).join('<br>') + `<br><br>Списано бонусов: ${bonusToUse}<br>Начислено бонусов: ${bonusToEarn}<br>Итоговая сумма: ${document.getElementById('finalTotal').textContent} ₽`;
+
         cart = [];
-        localStorage.setItem('nemarket_cart', JSON.stringify(cart));
+        saveCart();
         updateCartCount();
-        alert(`🎉 Заказ оплачен! Начислено бонусов: ${bonusToEarn}, использовано: ${bonusToUse}. Баланс: ${bonusBalance.toLocaleString()} бонусов.\nНо помните: на NEmarket ничего нельзя заказать по-настоящему!`);
+        showCheckoutModal(details);
         switchTab('home');
       }
 
@@ -446,16 +527,17 @@
         if (!p) return;
         const { reviews, totalCount } = getProductReviews(p.id);
         const gallery = Array.from({length: p.imageCount}, (_, i) => `<img src="${getImageUrl(p.id, i+1)}" onerror="this.style.display='none'">`).join('');
-        const inCart = isInCart(p.id);
+        const cartQty = getCartQuantity(p.id);
+        const adultBadge = p.id === 128 ? '<span style="background:#e74c4c;color:#fff;padding:2px 8px;border-radius:8px;font-size:12px;">18+</span>' : '';
         document.getElementById('productModal').innerHTML = `
           <button class="close" onclick="closeModal()">✕</button>
           <div class="modal-gallery">${gallery}</div>
-          <h3>${p.name}</h3>
-          <p style="color:#666">${p.company}</p>
+          <h3>${p.name} ${adultBadge}</h3>
+          <p class="company" style="color:var(--accent);text-decoration:underline;cursor:pointer;" onclick="showCompany('${p.company}')">${p.company}</p>
           <p style="font-size:24px;font-weight:800">${p.price.toLocaleString()} ₽ ${p.oldPrice?`<span style="font-size:16px;color:#999;text-decoration:line-through">${p.oldPrice.toLocaleString()} ₽</span>`:''}</p>
           <div class="installment">Рассрочка: от ${Math.round(p.price/3).toLocaleString()} ₽ × 3 мес.</div>
           <div class="bonus">+${Math.round(p.price*0.01)} бонусов</div>
-          <button class="add-to-cart-btn ${inCart?'in-cart':''}" onclick="${inCart ? `removeFromCart(${p.id})` : `addToCart(${p.id})`}">${inCart ? '✓ В корзине' : 'Добавить в корзину'}</button>
+          <button class="add-to-cart-btn ${cartQty>0?'in-cart':''}" onclick="${cartQty>0 ? `updateCartQuantity(${p.id}, 1)` : `addToCart(${p.id})`}">${cartQty>0 ? `✓ В корзине (${cartQty})` : 'Добавить в корзину'}</button>
           <div style="margin:12px 0; line-height:1.5;">${p.desc}</div>
           <div style="margin-top:12px;"><strong>Отзывы (показано ${reviews.length} из ${totalCount.toLocaleString()}):</strong></div>
           ${reviews.map(r => `<div style="background:#f9f9f9;border-radius:8px;padding:8px;margin:6px 0;"><strong>${r.user}</strong> ${'★'.repeat(r.rating)}<br>${r.text}<br><small>👍 ${r.likes}</small></div>`).join('')}
@@ -468,6 +550,16 @@
         document.getElementById('productModalOverlay').classList.remove('open');
       }
 
+      function showCompany(companyName) {
+        companyFilter = companyName;
+        document.getElementById('searchInput').value = '';
+        currentSearch = '';
+        currentCategory = 'all';
+        document.querySelectorAll('.nav-cat').forEach(b => b.classList.remove('active'));
+        document.querySelector('.nav-cat[data-cat="all"]').classList.add('active');
+        switchTab('home');
+      }
+
       let currentTab = 'home';
       function switchTab(tab) {
         currentTab = tab;
@@ -476,6 +568,7 @@
         else if (tab === 'feed') document.querySelector('.bottom-nav button:nth-child(2)').classList.add('active');
         else if (tab === 'favorites') document.querySelector('.bottom-nav button:nth-child(3)').classList.add('active');
         else if (tab === 'cart') document.querySelector('.bottom-nav button:nth-child(4)').classList.add('active');
+        companyFilter = null; // сброс канала компании при смене вкладки
         renderCurrentView();
       }
 
@@ -489,20 +582,27 @@
       function renderHome() {
         const main = document.getElementById('mainContent');
         const filtered = filterProducts();
-        main.innerHTML = `<div class="products-grid" id="homeGrid"></div>`;
+        if (companyFilter) {
+          main.innerHTML = `<div style="padding:16px;"><h3>Товары компании «${companyFilter}» <button onclick="companyFilter=null;switchTab('home')" style="border:none;background:none;color:var(--accent);cursor:pointer;">✕</button></h3><div class="products-grid" id="homeGrid"></div></div>`;
+        } else {
+          main.innerHTML = `<div class="products-grid" id="homeGrid"></div>`;
+        }
         renderProducts('homeGrid', filtered);
       }
 
       function goHome() {
+        companyFilter = null;
         currentCategory = 'all';
         currentSearch = '';
         document.getElementById('searchInput').value = '';
         document.querySelectorAll('.nav-cat').forEach(b => b.classList.remove('active'));
+        document.querySelector('.nav-cat[data-cat="all"]').classList.add('active');
         switchTab('home');
       }
 
       function handleSearch() {
         currentSearch = document.getElementById('searchInput').value;
+        companyFilter = null; // поиск сбрасывает канал
         renderHome();
       }
 
@@ -519,6 +619,7 @@
             document.querySelectorAll('.nav-cat').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentCategory = e.target.dataset.cat;
+            companyFilter = null;
             currentSearch = '';
             document.getElementById('searchInput').value = '';
             switchTab('home');
@@ -536,6 +637,7 @@
       window.closeModal = closeModal;
       window.addToCart = addToCart;
       window.removeFromCart = removeFromCart;
+      window.updateCartQuantity = updateCartQuantity;
       window.nextFeed = nextFeed;
       window.addToFavoritesFromFeed = addToFavoritesFromFeed;
       window.switchTab = switchTab;
@@ -545,6 +647,8 @@
       window.openCart = () => switchTab('cart');
       window.checkout = checkout;
       window.updateCartTotal = updateCartTotal;
+      window.showCompany = showCompany;
+      window.closeCheckoutModal = closeCheckoutModal;
 
       function showToast(msg) {
         const toast = document.getElementById('toast');
